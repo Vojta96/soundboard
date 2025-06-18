@@ -27,8 +27,7 @@ export default function SoundPad() {
   const stopAllSounds = () => {
     audioRefs.current.forEach((audio) => {
       if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
+        audio.currentTime = 0.02;
       }
     });
   };
