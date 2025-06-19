@@ -31,7 +31,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
   user-select: none;
 }
 
@@ -42,5 +41,5 @@ body {
   background: none;
   border: none;
   color: inherit;
-  padding: 1rem;
+  padding: 0.5rem;
 }

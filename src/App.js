@@ -1,5 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import './App.css';
+
 import soundAhShit from './sounds/ahshit.mp3';
 import airHorn from './sounds/airhorn.mp3';
 import applause from './sounds/applause.mp3';
@@ -8,10 +10,9 @@ import crash from './sounds/crash.mp3';
 import glass from './sounds/glass.mp3';
 import news from './sounds/news.mp3';
 import buzzer from './sounds/buzzer.mp3';
-import './App.css';
 
 const pads = [
-  { id: 1, label: 'Ah Shit, here we go again', sound: soundAhShit },
+  { id: 1, label: 'Ah Shit', sound: soundAhShit },
   { id: 2, label: 'AirHorn', sound: airHorn },
   { id: 3, label: 'Applause', sound: applause },
   { id: 4, label: 'SoloClap', sound: soloClap },
@@ -22,39 +23,52 @@ const pads = [
 ];
 
 export default function SoundPad() {
-  const audioRefs = useRef(pads.map(() => null));
+  const audioContextRef = useRef(null);
+  const buffersRef = useRef({});
+  const sourcesRef = useRef({});
 
-  const stopAllSounds = () => {
-    audioRefs.current.forEach((audio) => {
-      if (audio) {
-        audio.currentTime = 0.02;
+  useEffect(() => {
+    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    const loadBuffers = async () => {
+      for (const pad of pads) {
+        const response = await fetch(pad.sound);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+        buffersRef.current[pad.id] = audioBuffer;
       }
-    });
-  };
+    };
+    loadBuffers();
+  }, []);
 
-  const playSound = (index) => {
-    stopAllSounds();
-    const currentAudio = audioRefs.current[index];
-    if (currentAudio) {
-      currentAudio.play();
+  const playSound = (padId) => {
+    const context = audioContextRef.current;
+    const buffer = buffersRef.current[padId];
+    if (!context || !buffer) return;
+
+    // Zastavíme předešlý source pokud existuje
+    if (sourcesRef.current[padId]) {
+      try {
+        sourcesRef.current[padId].stop();
+      } catch (e) {}
     }
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    source.start(0);
+    sourcesRef.current[padId] = source;
   };
 
   return (
     <div className="pad-grid">
-      {pads.map((pad, index) => (
-        <motion.div
-          key={pad.id}
-          whileTap={{ scale: 0.95 }}
-          className="pad-button"
-        >
+      {pads.map((pad) => (
+        <motion.div key={pad.id} whileTap={{ scale: 0.95 }} className="pad-button">
           <button
             className="pad-label"
-            onClick={() => playSound(index)}
+            onClick={() => playSound(pad.id)}
             touch-action="manipulation"
           >
             {pad.label}
-            <audio ref={(el) => (audioRefs.current[index] = el)} src={pad.sound} preload="auto" />
           </button>
         </motion.div>
       ))}
